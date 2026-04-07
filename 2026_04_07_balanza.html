@@ -115,10 +115,6 @@ canvas{display:block;width:100%}
   <div class="card">
     <div class="hist" id="hist"><span class="hem">Las operaciones realizadas aparecerán aquí...</span></div>
   </div>
-
-  <div style="text-align:center;padding:12px 0 4px;font-size:12px;color:var(--text3)">
-    <span style="font-weight:500;color:var(--text2)">Álgebra y Funciones</span> &nbsp;·&nbsp; Prof: Jorge Gaona
-  </div>
 </div>
 
 <script>
@@ -237,7 +233,7 @@ function applyBoth(fn, label){
   state.L=fn(state.L);
   state.R=fn(state.R);
   const after=fmtSide(state.L)+' = '+fmtSide(state.R);
-  state.history.push(`${label}  ⟺  ${after}`);
+  state.history.push(`${label}  →  ${after}`);
   animateAndRender();
 }
 
@@ -254,7 +250,7 @@ function updateStatus(){
   if(L.x===1&&R.x===0)      setStatus('x = '+fmt(R.c)+'  —  ¡Ecuación resuelta! 🎉','ok');
   else if(R.x===1&&L.x===0) setStatus('x = '+fmt(L.c)+'  —  ¡Ecuación resuelta! 🎉','ok');
   else if(L.x===0&&R.x===0) setStatus(L.c===R.c?'Identidad — siempre verdadera':'Sin solución — contradicción',L.c===R.c?'ok':'err');
-  else setStatus('Balanza equilibrada — sigue operando para despejar x','ok');
+  else setStatus('Balanza equilibrada — seguí operando para despejar x','ok');
 }
 
 function updateHist(){
