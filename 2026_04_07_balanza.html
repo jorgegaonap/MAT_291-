@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Balanza de Ecuaciones</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
+:root {
+  --bg:#f5f2eb;--surface:#fffef9;--border:#ddd9ce;
+  --text:#1a1814;--text2:#6b6760;--text3:#a09d97;
+  --blue:#2563eb;--blue-l:#dbeafe;--blue-d:#1d4ed8;
+  --orange:#ea580c;--orange-d:#c2410c;
+  --red:#dc2626;--red-d:#b91c1c;
+  --green:#16a34a;--green-l:#dcfce7;
+  --amber:#d97706;--amber-l:#fef3c7;
+  --r:10px;--rs:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;justify-content:center;padding:1.5rem 1rem}
+.app{width:100%;max-width:700px}
+h1{font-size:21px;font-weight:600;letter-spacing:-.5px;margin-bottom:3px}
+.sub{font-size:12px;color:var(--text3);margin-bottom:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px}
+.eq-row{display:flex;gap:8px}
+input[type=text]{font-family:'DM Mono',monospace;font-size:15px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--rs);background:var(--bg);color:var(--text);outline:none;transition:border-color .15s;flex:1}
+input[type=number]{font-family:'DM Mono',monospace;font-size:14px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--rs);background:var(--bg);color:var(--text);outline:none;width:72px;text-align:center}
+input:focus{border-color:var(--blue)}
+button{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:8px 13px;border:1px solid var(--border);border-radius:var(--rs);background:var(--surface);color:var(--text);cursor:pointer;transition:background .1s,transform .08s;white-space:nowrap}
+button:hover{background:var(--bg)}
+button:active{transform:scale(.97)}
+button.primary{background:var(--text);color:var(--surface);border-color:var(--text)}
+button.primary:hover{background:#333}
+.examples{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.exbtn{font-size:11px;font-family:'DM Mono',monospace;padding:3px 9px;background:var(--blue-l);color:var(--blue-d);border-color:#bfdbfe}
+.exbtn:hover{background:#bfdbfe}
+.op-block{margin-bottom:4px}
+.op-label{font-size:11px;color:var(--text3);font-weight:500;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.op-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.op-row span{font-size:12px;color:var(--text2);white-space:nowrap}
+.eq-display{font-family:'DM Mono',monospace;font-size:24px;font-weight:500;text-align:center;letter-spacing:1px;padding:8px 0 4px;color:var(--text)}
+.status{font-size:12px;font-weight:500;text-align:center;padding:4px;display:flex;justify-content:center;margin-bottom:10px}
+.status span{padding:4px 14px;border-radius:20px}
+.ok span{background:var(--green-l);color:var(--green)}
+.warn span{background:var(--amber-l);color:var(--amber)}
+.err span{background:#fee2e2;color:var(--red)}
+canvas{display:block;width:100%}
+.legend{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+.li{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
+.lsq{width:13px;height:13px;border-radius:3px}
+.lci{width:13px;height:13px;border-radius:50%}
+.hist{font-size:12px;color:var(--text2);font-family:'DM Mono',monospace;max-height:70px;overflow-y:auto}
+.hi{padding:3px 0;border-bottom:1px solid var(--border)}
+.hi:last-child{border-bottom:none}
+.hem{color:var(--text3);font-family:'DM Sans',sans-serif}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>Balanza de ecuaciones</h1>
+  <p class="sub">Escribí una ecuación y aplicá operaciones a ambos lados simultáneamente</p>
+
+  <div class="card">
+    <div class="eq-row">
+      <input type="text" id="eq-in" value="2x + 2 = x + 3" placeholder="Ej: 3x + 2 = 11"/>
+      <button class="primary" onclick="loadEq()">Cargar</button>
+      <button onclick="resetAll()">Reiniciar</button>
+    </div>
+    <div class="examples">
+      <button class="exbtn" onclick="setEq('3x + 2 = 11')">3x + 2 = 11</button>
+      <button class="exbtn" onclick="setEq('2x + 2 = x + 3')">2x + 2 = x + 3</button>
+      <button class="exbtn" onclick="setEq('5x = 20')">5x = 20</button>
+      <button class="exbtn" onclick="setEq('-x + 6 = 2')">-x + 6 = 2</button>
+      <button class="exbtn" onclick="setEq('4x + 3 = 2x + 9')">4x + 3 = 2x + 9</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="op-block">
+      <div class="op-label">Operar con un número (a ambos lados)</div>
+      <div class="op-row">
+        <input type="number" id="opnum" value="1" step="any"/>
+        <button onclick="doNumOp('+')">+ sumar</button>
+        <button onclick="doNumOp('-')">− restar</button>
+        <button onclick="doNumOp('*')">× multiplicar</button>
+        <button onclick="doNumOp('/')">÷ dividir</button>
+      </div>
+    </div>
+    <div class="op-block" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+      <div class="op-label">Operar con x (a ambos lados)</div>
+      <div class="op-row">
+        <input type="number" id="opx" value="1" step="any" min="0"/>
+        <span>× x</span>
+        <button onclick="doXOp('+')">+ sumar x</button>
+        <button onclick="doXOp('-')">− restar x</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <div class="eq-display" id="eq-disp" style="padding:8px 0 4px;flex:1">—</div>
+      <button id="btn-hide" onclick="toggleLabels()" style="white-space:nowrap;font-size:12px;padding:5px 11px">Ocultar etiquetas</button>
+    </div>
+    <div class="status ok" id="sw"><span id="st">Cargá una ecuación</span></div>
+    <canvas id="bal" height="300"></canvas>
+    <div class="legend">
+      <div class="li"><div class="lsq" style="background:#2563eb;border:1px solid #1d4ed8"></div>x positiva</div>
+      <div class="li"><div class="lsq" style="background:#dc2626;border:1px solid #b91c1c"></div>x negativa</div>
+      <div class="li"><div class="lci" style="background:#ea580c;border:1px solid #c2410c"></div>constante +</div>
+      <div class="li"><div class="lci" style="background:#dc2626;border:1px solid #b91c1c"></div>constante −</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="hist" id="hist"><span class="hem">Las operaciones realizadas aparecerán aquí...</span></div>
+  </div>
+
+  <div style="text-align:center;padding:12px 0 4px;font-size:12px;color:var(--text3)">
+    <span style="font-weight:500;color:var(--text2)">Álgebra y Funciones</span> &nbsp;·&nbsp; Prof: Jorge Gaona
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('bal');
+const ctx = canvas.getContext('2d');
+
+// State: L and R are {x, c} where the equation is Lx*x + Lc = Rx*x + Rc
+// "balanced" means the equation was loaded as-is (both sides equal for the same x)
+// tilt only happens when user applies an op to ONE side accidentally — but since
+// we always apply to both, the equation stays valid → tilt = 0 always.
+// HOWEVER: we track an "imbalance" score for visual drama on each operation.
+let state = {L:{x:0,c:0}, R:{x:0,c:0}, history:[], loaded: false};
+let animReq = null;
+let animP = 0;
+let prevTilt = 0;
+let targetTilt = 0;
+let hideLabels = false;
+
+function toggleLabels(){
+  hideLabels = !hideLabels;
+  const btn = document.getElementById('btn-hide');
+  btn.textContent = hideLabels ? 'Mostrar etiquetas' : 'Ocultar etiquetas';
+  btn.style.background = hideLabels ? 'var(--amber-l)' : '';
+  btn.style.borderColor = hideLabels ? 'var(--amber)' : '';
+  btn.style.color = hideLabels ? 'var(--amber)' : '';
+  document.getElementById('eq-disp').style.visibility = hideLabels ? 'hidden' : 'visible';
+  drawBalance(0, false);
+}
+
+function r2(n){ return Math.round(n*1000)/1000; }
+function fmt(n){
+  const r = Math.round(n*100)/100;
+  if(Number.isInteger(r)) return String(r);
+  return r.toFixed(2).replace(/\.?0+$/,'');
+}
+
+function setEq(v){ document.getElementById('eq-in').value=v; loadEq(); }
+
+function parseEq(s){
+  s = s.replace(/\s+/g,'').replace(/[−–]/g,'-');
+  const sides = s.split('=');
+  if(sides.length!==2) return null;
+  function parseSide(str){
+    let x=0,c=0;
+    if(str[0]!=='-') str='+'+str;
+    const tokens = str.match(/[+-][^+-]*/g)||[];
+    for(let t of tokens){
+      t=t.trim(); if(!t) continue;
+      if(t.includes('x')){
+        const co=t.replace('x','').trim();
+        if(co===''||co==='+') x+=1;
+        else if(co==='-') x-=1;
+        else x+=parseFloat(co);
+      } else {
+        const v=parseFloat(t);
+        if(!isNaN(v)) c+=v;
+      }
+    }
+    return {x:r2(x),c:r2(c)};
+  }
+  return {L:parseSide(sides[0]), R:parseSide(sides[1])};
+}
+
+function fmtSide(t){
+  let p=[];
+  if(t.x!==0){
+    if(t.x===1) p.push('x');
+    else if(t.x===-1) p.push('-x');
+    else p.push(fmt(t.x)+'x');
+  }
+  if(t.c!==0){
+    if(t.c>0&&p.length>0) p.push('+'+fmt(t.c));
+    else p.push(fmt(t.c));
+  }
+  if(!p.length) p.push('0');
+  return p.join(' ');
+}
+
+function loadEq(){
+  const v=document.getElementById('eq-in').value;
+  const p=parseEq(v);
+  if(!p){ setStatus('No pude leer la ecuación. Ejemplo: 3x + 2 = 11','err'); return; }
+  state={L:p.L,R:p.R,history:[],loaded:true};
+  // A freshly loaded equation is always balanced (we trust the user wrote a valid one)
+  prevTilt=0; targetTilt=0;
+  render();
+}
+
+function doNumOp(op){
+  const raw=parseFloat(document.getElementById('opnum').value);
+  if(isNaN(raw)){setStatus('Ingresá un número','err');return;}
+  if(op==='/'&&raw===0){setStatus('No se puede dividir por cero','err');return;}
+  function ap(t){
+    if(op==='+') return {x:t.x, c:r2(t.c+raw)};
+    if(op==='-') return {x:t.x, c:r2(t.c-raw)};
+    if(op==='*') return {x:r2(t.x*raw), c:r2(t.c*raw)};
+    if(op==='/') return {x:r2(t.x/raw), c:r2(t.c/raw)};
+  }
+  const sym={'+':'+','-':'−','*':'×','/':'÷'}[op];
+  applyBoth(ap, `${sym} ${fmt(raw)}`);
+}
+
+function doXOp(op){
+  const raw=parseFloat(document.getElementById('opx').value);
+  if(isNaN(raw)||raw===0){setStatus('Ingresá un coeficiente distinto de 0','err');return;}
+  const delta=op==='+'?raw:-raw;
+  function ap(t){ return {x:r2(t.x+delta), c:t.c}; }
+  const sym=op==='+'?'+':'−';
+  applyBoth(ap, `${sym} ${fmt(Math.abs(delta))}x`);
+}
+
+function applyBoth(fn, label){
+  // animate: briefly tilt then return to horizontal
+  prevTilt = 0;
+  targetTilt = 0; // since we always apply to both, stays balanced
+  state.L=fn(state.L);
+  state.R=fn(state.R);
+  const after=fmtSide(state.L)+' = '+fmtSide(state.R);
+  state.history.push(`${label}  ⟺  ${after}`);
+  animateAndRender();
+}
+
+function resetAll(){ loadEq(); }
+
+function setStatus(msg,cls){
+  document.getElementById('st').textContent=msg;
+  document.getElementById('sw').className='status '+cls;
+}
+
+function updateStatus(){
+  const L=state.L,R=state.R;
+  if(!state.loaded){ setStatus('Cargá una ecuación','warn'); return; }
+  if(L.x===1&&R.x===0)      setStatus('x = '+fmt(R.c)+'  —  ¡Ecuación resuelta! 🎉','ok');
+  else if(R.x===1&&L.x===0) setStatus('x = '+fmt(L.c)+'  —  ¡Ecuación resuelta! 🎉','ok');
+  else if(L.x===0&&R.x===0) setStatus(L.c===R.c?'Identidad — siempre verdadera':'Sin solución — contradicción',L.c===R.c?'ok':'err');
+  else setStatus('Balanza equilibrada — sigue operando para despejar x','ok');
+}
+
+function updateHist(){
+  document.getElementById('eq-disp').style.visibility = hideLabels ? 'hidden' : 'visible';
+  document.getElementById('eq-disp').textContent=fmtSide(state.L)+' = '+fmtSide(state.R);
+  const h=document.getElementById('hist');
+  if(!state.history.length){
+    h.innerHTML='<span class="hem">Las operaciones realizadas aparecerán aquí...</span>';
+    return;
+  }
+  h.innerHTML=state.history.slice(-10).reverse().map(x=>`<div class="hi">${x}</div>`).join('');
+}
+
+function render(){
+  if(animReq){cancelAnimationFrame(animReq);animReq=null;}
+  document.getElementById('eq-disp').style.visibility = hideLabels ? 'hidden' : 'visible';
+  document.getElementById('eq-disp').textContent=fmtSide(state.L)+' = '+fmtSide(state.R);
+  updateStatus(); updateHist(); drawBalance(0, false);
+}
+
+function animateAndRender(){
+  if(animReq) cancelAnimationFrame(animReq);
+  animP=0;
+  document.getElementById('eq-disp').style.visibility = hideLabels ? 'hidden' : 'visible';
+  document.getElementById('eq-disp').textContent=fmtSide(state.L)+' = '+fmtSide(state.R);
+  updateStatus(); updateHist();
+  // Brief tilt animation: go to max then back to 0
+  const TILT_PEAK = 8;
+  function step(){
+    animP=Math.min(1,animP+0.05);
+    // arc: ramp up to 0.5 then back to 0
+    const tilt = animP<0.5 ? TILT_PEAK*(animP/0.5) : TILT_PEAK*(1-(animP-0.5)/0.5);
+    drawBalance(tilt, true);
+    if(animP<1) animReq=requestAnimationFrame(step);
+    else drawBalance(0, false);
+  }
+  requestAnimationFrame(step);
+}
+
+// ── Build shape list for a side ──
+function buildShapes(terms){
+  const COLS=4;
+  const items=[];
+
+  const xAbs=Math.abs(terms.x);
+  const cAbs=Math.abs(terms.c);
+  const xNeg=terms.x<0;
+  const cNeg=terms.c<0;
+  const xInt=Number.isInteger(xAbs);
+  const cInt=Number.isInteger(cAbs);
+
+  // X shapes
+  if(xAbs>0){
+    if(!xInt||xAbs>12){
+      // fractional or big: one representative box
+      items.push({type:'x',neg:xNeg,lbl:(xNeg?'-':'')+fmt(xAbs)+'x',col:0,row:0});
+    } else {
+      for(let i=0;i<xAbs;i++){
+        items.push({type:'x',neg:xNeg,lbl:xNeg?'-x':'x',col:i%COLS,row:Math.floor(i/COLS)});
+      }
+    }
+  }
+
+  // Constant shapes — pack after x shapes
+  if(cAbs>0){
+    const offset=items.length;
+    if(!cInt||cAbs>12){
+      // fractional or big: one representative circle
+      items.push({type:'c',neg:cNeg,lbl:(cNeg?'-':'')+fmt(cAbs),col:offset%COLS,row:Math.floor(offset/COLS)});
+    } else {
+      for(let i=0;i<cAbs;i++){
+        const gi=offset+i;
+        items.push({type:'c',neg:cNeg,lbl:cNeg?'-1':'+1',col:gi%COLS,row:Math.floor(gi/COLS)});
+      }
+    }
+  }
+  return items;
+}
+
+function drawBalance(tilt, animating){
+  const W=canvas.offsetWidth||600;
+  const H=300;
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=W*dpr; canvas.height=H*dpr;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,W,H);
+
+  // tilt is passed directly (0 = horizontal)
+  const trad=tilt*Math.PI/180;
+  const CX=W/2, PIVOT_Y=68;
+  const ARM=W*0.365;
+
+  const lx=CX-Math.cos(trad)*ARM;
+  const ly=PIVOT_Y+Math.sin(-trad)*ARM*0.38;
+  const rx=CX+Math.cos(trad)*ARM;
+  const ry=PIVOT_Y+Math.sin(trad)*ARM*0.38;
+
+  const PLAT_OFF=40;
+  const platW=Math.min(W*0.3,138);
+
+  ctx.lineCap='round';
+
+  // beam
+  ctx.strokeStyle='#8a8780'; ctx.lineWidth=5;
+  ctx.beginPath(); ctx.moveTo(lx,ly); ctx.lineTo(rx,ry); ctx.stroke();
+
+  // pivot
+  ctx.beginPath(); ctx.arc(CX,PIVOT_Y,9,0,Math.PI*2);
+  ctx.fillStyle='#555'; ctx.fill();
+
+  // pole
+  ctx.strokeStyle='#8a8780'; ctx.lineWidth=5;
+  ctx.beginPath(); ctx.moveTo(CX,PIVOT_Y+8); ctx.lineTo(CX,H-32); ctx.stroke();
+
+  // base
+  ctx.fillStyle='#b0ada8';
+  ctx.beginPath();
+  ctx.moveTo(CX-20,H-32); ctx.lineTo(CX+20,H-32);
+  ctx.lineTo(CX+30,H-16); ctx.lineTo(CX-30,H-16);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#999590';
+  ctx.fillRect(CX-42,H-16,84,12);
+
+  // strings
+  ctx.strokeStyle='#bbb'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(lx,ly); ctx.lineTo(lx,ly+PLAT_OFF); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(rx,ry); ctx.lineTo(rx,ry+PLAT_OFF); ctx.stroke();
+
+  // plates
+  ctx.strokeStyle='#8a8780'; ctx.lineWidth=4;
+  ctx.beginPath(); ctx.moveTo(lx-platW/2,ly+PLAT_OFF); ctx.lineTo(lx+platW/2,ly+PLAT_OFF); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(rx-platW/2,ry+PLAT_OFF); ctx.lineTo(rx+platW/2,ry+PLAT_OFF); ctx.stroke();
+
+  drawItems(state.L, lx, ly+PLAT_OFF, platW, animating ? Math.min(1,animP*2) : 1);
+  drawItems(state.R, rx, ry+PLAT_OFF, platW, animating ? Math.min(1,animP*2) : 1);
+
+  // labels
+  ctx.font='500 13px DM Mono,monospace';
+  ctx.textAlign='center'; ctx.fillStyle='#666'; ctx.textBaseline='alphabetic';
+  if(!hideLabels){
+    ctx.fillText(fmtSide(state.L), lx, ly+PLAT_OFF+18);
+    ctx.fillText(fmtSide(state.R), rx, ry+PLAT_OFF+18);
+  }
+}
+
+function drawItems(terms, px, platY, platW, progress){
+  if(terms.x===0&&terms.c===0){
+    ctx.font='bold 18px DM Mono,monospace';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillStyle='#ccc';
+    ctx.fillText('0',px,platY-22);
+    ctx.textBaseline='alphabetic';
+    return;
+  }
+
+  const items=buildShapes(terms);
+  if(!items.length) return;
+
+  const SZ=11; // radius / half-size
+  const GAP=5;
+  const CELL=SZ*2+GAP;
+  const COLS=4;
+  const ROW_H=SZ*2+7;
+
+  const usedCols=Math.min(COLS, items.length);
+  const totalW=usedCols*CELL-GAP;
+  const startX=px-totalW/2+SZ;
+
+  for(let i=0;i<items.length;i++){
+    const item=items[i];
+    const sx=startX+item.col*CELL;
+    // row 0 = closest to plate, stacks upward
+    const sy=platY - SZ - 8 - item.row*ROW_H;
+
+    const delay=i*0.05;
+    const alpha=Math.max(0,Math.min(1,(progress-delay)/Math.max(0.01,1-delay)));
+    ctx.globalAlpha=alpha;
+
+    if(item.type==='x'){
+      const fill=item.neg?'#dc2626':'#2563eb';
+      const stroke=item.neg?'#b91c1c':'#1d4ed8';
+      ctx.fillStyle=fill; ctx.strokeStyle=stroke; ctx.lineWidth=1.5;
+      rrect(sx-SZ,sy-SZ,SZ*2,SZ*2,4);
+      ctx.fill(); ctx.stroke();
+    } else {
+      const fill=item.neg?'#dc2626':'#ea580c';
+      const stroke=item.neg?'#b91c1c':'#c2410c';
+      ctx.fillStyle=fill; ctx.strokeStyle=stroke; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.arc(sx,sy,SZ,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    }
+
+    if(!hideLabels){
+      ctx.fillStyle='white';
+      ctx.font='bold 9px DM Sans,sans-serif';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(item.lbl,sx,sy);
+    }
+    ctx.globalAlpha=1;
+  }
+  ctx.textBaseline='alphabetic';
+}
+
+function rrect(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+
+window.addEventListener('resize',()=>render());
+window.addEventListener('load',()=>loadEq());
+</script>
+</body>
+</html>
